@@ -101,3 +101,5 @@ fleet-app/
   front-end.
 - **RLS ativo:** cada usuário só consegue ler/criar/editar/excluir seus
   próprios veículos e registros.
+- **IPVA de Santa Catarina:** a view `vehicle_alerts` calcula a data da cota
+   única pelo final da placa e exibe o status do vencimento no cartão do veículo.

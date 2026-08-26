@@ -1,8 +1,9 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Car, Gauge, Plus, Trash2, Droplet } from 'lucide-react'
+import { Car, Gauge, Plus, Trash2, Droplet, CalendarDays } from 'lucide-react'
 import AlertBadge from './AlertBadge'
+import IpvaBadge from './IpvaBadge'
 import type { VehicleAlert } from '@/lib/types'
 
 interface VehicleCardProps {
@@ -17,6 +18,10 @@ export default function VehicleCard({
   onDelete,
 }: VehicleCardProps) {
   const kmFormatted = new Intl.NumberFormat('pt-BR').format(vehicle.km_atual)
+  const ipvaDate = new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: 'short',
+  }).format(new Date(`${vehicle.ipva_due_date}T00:00:00`))
 
   return (
     <motion.div
@@ -41,6 +46,9 @@ export default function VehicleCard({
               {vehicle.plate}
               {vehicle.year ? ` · ${vehicle.year}` : ''}
             </p>
+            {vehicle.cor && (
+              <p className="text-[12px] text-[#8e8e93]">{vehicle.cor}</p>
+            )}
           </div>
         </div>
 
@@ -77,6 +85,14 @@ export default function VehicleCard({
           última troca.
         </p>
       )}
+
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-[13px] text-[#8e8e93]">
+          <CalendarDays className="w-3.5 h-3.5" />
+          <span>IPVA · cota única ({ipvaDate})</span>
+        </div>
+        <IpvaBadge status={vehicle.ipva_status} />
+      </div>
 
       {/* Ação */}
       <button

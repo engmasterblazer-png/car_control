@@ -5,6 +5,7 @@ export type RecordType =
   | 'combustivel'
 
 export type OilStatus = 'em_dia' | 'proximo' | 'vencido' | 'sem_registro'
+export type IpvaStatus = 'em_dia' | 'proximo' | 'vencido'
 
 export const RECORD_TYPE_LABELS: Record<RecordType, string> = {
   troca_oleo: 'Troca de óleo',
@@ -18,6 +19,7 @@ export interface Vehicle {
   user_id: string
   model: string
   plate: string
+  cor: string | null
   year: number | null
   km_atual: number
   created_at: string
@@ -30,7 +32,8 @@ export interface VehicleRecord {
   user_id: string
   type: RecordType
   value: number
-  km: number
+  km: number | null
+  litros: number | null
   date: string
   notes: string | null
   created_at: string
@@ -41,6 +44,7 @@ export interface VehicleAlert {
   user_id: string
   model: string
   plate: string
+  cor: string | null
   year: number | null
   km_atual: number
   last_oil_km: number | null
@@ -48,4 +52,6 @@ export interface VehicleAlert {
   km_since_last_oil: number
   days_since_last_oil: number
   oil_status: OilStatus
+  ipva_due_date: string
+  ipva_status: IpvaStatus
 }

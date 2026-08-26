@@ -20,6 +20,7 @@ export default function AddVehicleSheet({
 
   const [model, setModel] = useState('')
   const [plate, setPlate] = useState('')
+  const [cor, setCor] = useState('')
   const [year, setYear] = useState('')
   const [kmAtual, setKmAtual] = useState('')
   const [loading, setLoading] = useState(false)
@@ -28,6 +29,7 @@ export default function AddVehicleSheet({
   function resetForm() {
     setModel('')
     setPlate('')
+    setCor('')
     setYear('')
     setKmAtual('')
     setError(null)
@@ -42,8 +44,8 @@ export default function AddVehicleSheet({
     e.preventDefault()
     setError(null)
 
-    if (!model.trim() || !plate.trim()) {
-      setError('Preencha modelo e placa.')
+    if (!model.trim() || !plate.trim() || !cor.trim()) {
+      setError('Preencha modelo, placa e cor.')
       return
     }
 
@@ -59,6 +61,7 @@ export default function AddVehicleSheet({
         user_id: user.id,
         model: model.trim(),
         plate: plate.trim().toUpperCase(),
+        cor: cor.trim(),
         year: year ? Number(year) : null,
         km_atual: kmAtual ? Number(kmAtual) : 0,
       })
@@ -154,6 +157,20 @@ export default function AddVehicleSheet({
                     className="w-full bg-[#f2f2f7] rounded-ios px-3.5 py-3 border border-black/5 outline-none text-[15px] focus:ring-2 focus:ring-ios-blue/40 transition"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-[#8e8e93] px-1 mb-1 block">
+                  Cor *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Branco"
+                  value={cor}
+                  onChange={(e) => setCor(e.target.value)}
+                  className="w-full bg-[#f2f2f7] rounded-ios px-3.5 py-3 border border-black/5 outline-none text-[15px] focus:ring-2 focus:ring-ios-blue/40 transition"
+                />
               </div>
 
               <div>

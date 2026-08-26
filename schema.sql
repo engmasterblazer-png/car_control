@@ -32,6 +32,7 @@ create table if not exists public.vehicles (
   user_id     uuid not null references auth.users(id) on delete cascade,
   model       text not null,
   plate       text not null,
+  cor         text not null default '',
   year        int,
   km_atual    numeric not null default 0,
   created_at  timestamptz not null default now(),
@@ -49,13 +50,19 @@ create table if not exists public.records (
   user_id     uuid not null references auth.users(id) on delete cascade,
   type        record_type not null,
   value       numeric not null default 0,
-  km          numeric not null,
+  km          numeric,
+  litros      numeric,
   date        date not null default current_date,
   notes       text,
   created_at  timestamptz not null default now()
 );
 
 comment on table public.records is 'Registros de despesas, manutenções e abastecimentos por veículo';
+
+-- Migração para bancos que já possuem as tabelas criadas.
+alter table public.vehicles add column if not exists cor text not null default '';
+alter table public.records add column if not exists litros numeric;
+alter table public.records alter column km drop not null;
 
 -- ---------------------------------------------------------------------
 -- 4. Índices
@@ -200,7 +207,28 @@ select
       or (current_date - last_oil.date) >= 305 then 'proximo'
     else 'em_dia'
   end                                                      as oil_status
+  ,v.cor                                                   as cor
+  ,ipva.due_date                                           as ipva_due_date
+  ,case
+    when ipva.due_date < current_date then 'vencido'
+    when ipva.due_date <= current_date + 30 then 'proximo'
+    else 'em_dia'
+  end                                                      as ipva_status
 from public.vehicles v
+cross join lateral (
+  select case right(regexp_replace(v.plate, '[^0-9]', '', 'g'), 1)
+    when '1' then make_date(extract(year from current_date)::int, 1, 31)
+    when '2' then make_date(extract(year from current_date)::int, 3, 1) - 1
+    when '3' then make_date(extract(year from current_date)::int, 4, 1)
+    when '4' then make_date(extract(year from current_date)::int, 4, 30)
+    when '5' then make_date(extract(year from current_date)::int, 5, 31)
+    when '6' then make_date(extract(year from current_date)::int, 7, 1)
+    when '7' then make_date(extract(year from current_date)::int, 7, 31)
+    when '8' then make_date(extract(year from current_date)::int, 9, 1)
+    when '9' then make_date(extract(year from current_date)::int, 9, 30)
+    when '0' then make_date(extract(year from current_date)::int, 10, 31)
+  end as due_date
+) ipva
 left join lateral (
   select r.km, r.date
   from public.records r

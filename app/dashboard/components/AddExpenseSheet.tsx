@@ -39,6 +39,7 @@ export default function AddExpenseSheet({
   const [type, setType] = useState<RecordType>('troca_oleo')
   const [value, setValue] = useState('')
   const [km, setKm] = useState('')
+  const [litros, setLitros] = useState('')
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
@@ -48,6 +49,7 @@ export default function AddExpenseSheet({
     setType('troca_oleo')
     setValue('')
     setKm('')
+    setLitros('')
     setDate(new Date().toISOString().slice(0, 10))
     setNotes('')
     setError(null)
@@ -66,9 +68,14 @@ export default function AddExpenseSheet({
 
     const parsedValue = Number(value.replace(',', '.'))
     const parsedKm = Number(km.replace(',', '.'))
+    const parsedLitros = Number(litros.replace(',', '.'))
 
-    if (!parsedKm || parsedKm <= 0) {
+    if (type === 'combustivel' && (!parsedKm || parsedKm <= 0)) {
       setError('Informe um KM válido.')
+      return
+    }
+    if (type === 'combustivel' && (!parsedLitros || parsedLitros <= 0)) {
+      setError('Informe uma quantidade de litros válida.')
       return
     }
     if (value !== '' && Number.isNaN(parsedValue)) {
@@ -89,7 +96,8 @@ export default function AddExpenseSheet({
         user_id: user.id,
         type,
         value: parsedValue || 0,
-        km: parsedKm,
+        km: parsedKm > 0 ? parsedKm : null,
+        litros: type === 'combustivel' ? parsedLitros : null,
         date,
         notes: notes.trim() || null,
       })
@@ -179,8 +187,8 @@ export default function AddExpenseSheet({
                 </div>
               </div>
 
-              {/* Valor + KM */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Valor */}
+              <div>
                 <div>
                   <label className="text-xs font-medium text-[#8e8e93] px-1 mb-1 block">
                     Valor (R$)
@@ -194,14 +202,35 @@ export default function AddExpenseSheet({
                     className="w-full bg-[#f2f2f7] rounded-ios px-3.5 py-3 border border-black/5 outline-none text-[15px] focus:ring-2 focus:ring-ios-blue/40 transition"
                   />
                 </div>
+              </div>
+
+              {type === 'combustivel' && (
                 <div>
                   <label className="text-xs font-medium text-[#8e8e93] px-1 mb-1 block">
-                    KM atual *
+                    Litros *
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    required
+                    placeholder="Ex: 42,5"
+                    value={litros}
+                    onChange={(e) => setLitros(e.target.value)}
+                    className="w-full bg-[#f2f2f7] rounded-ios px-3.5 py-3 border border-black/5 outline-none text-[15px] focus:ring-2 focus:ring-ios-blue/40 transition"
+                  />
+                </div>
+              )}
+
+              {/* KM atual */}
+              <div>
+                <div>
+                  <label className="text-xs font-medium text-[#8e8e93] px-1 mb-1 block">
+                    KM atual {type === 'combustivel' ? '*' : ''}
                   </label>
                   <input
                     type="text"
                     inputMode="numeric"
-                    required
+                    required={type === 'combustivel'}
                     placeholder="Ex: 45000"
                     value={km}
                     onChange={(e) => setKm(e.target.value)}
