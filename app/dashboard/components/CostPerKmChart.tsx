@@ -12,7 +12,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { motion } from 'framer-motion'
-import { Fuel, Droplet, Wrench, CircleDot, Filter } from 'lucide-react'
+import { Fuel, Droplet, Wrench, CircleDot, Filter, Car } from 'lucide-react'
 import type { RecordType } from '@/lib/types'
 
 interface ExpenseRecord {
@@ -36,6 +36,13 @@ interface CostPerKmData {
   cumulativeCostPerKm: number
   expenses: ExpenseRecord[]
   byType: Record<RecordType, { cost: number; km: number }>
+}
+
+interface VehicleConsumption {
+  vehicle_id: string
+  vehicle_model: string
+  averageConsumption: number | null
+  readingsCount: number
 }
 
 const TYPE_COLORS: Record<RecordType, string> = {
@@ -89,6 +96,72 @@ export default function CostPerKmChart({ expenses, vehicleId }: CostPerKmChartPr
       return expenseDate >= oneYearAgo
     })
   }, [expenses, selectedTypes, vehicleId, timeRange])
+
+  // Calcular consumo médio por veículo (km por litro)
+  const vehicleConsumption = useMemo(() => {
+    const consumptionByVehicle: Record<string, VehicleConsumption> = {}
+    
+    // Agrupar registros de combustível por veículo
+    const fuelExpensesByVehicle = filteredExpenses
+      .filter(exp => exp.type === 'combustivel' && exp.km !== null && exp.litros !== null && exp.litros > 0)
+      .reduce((acc, exp) => {
+        if (!acc[exp.vehicle_id]) {
+          acc[exp.vehicle_id] = []
+        }
+        acc[exp.vehicle_id].push(exp)
+        return acc
+      }, {} as Record<string, ExpenseRecord[]>)
+    
+    // Calcular consumo para cada veículo
+    Object.entries(fuelExpensesByVehicle).forEach(([vehId, records]) => {
+      // Ordenar por KM para garantir sequência correta
+      const sortedRecords = [...records].sort((a, b) => a.km! - b.km!)
+      
+      if (sortedRecords.length < 2) {
+        // Precisa de pelo menos 2 registros para calcular consumo
+        consumptionByVehicle[vehId] = {
+          vehicle_id: vehId,
+          vehicle_model: sortedRecords[0]?.vehicle_model || '',
+          averageConsumption: null,
+          readingsCount: sortedRecords.length,
+        }
+        return
+      }
+      
+      // Usar o primeiro registro como referência inicial
+      const firstRecord = sortedRecords[0]
+      let totalDistance = 0
+      let totalLiters = 0
+      let validReadings = 0
+      
+      // Calcular consumo entre registros consecutivos
+      for (let i = 1; i < sortedRecords.length; i++) {
+        const currentRecord = sortedRecords[i]
+        const previousRecord = sortedRecords[i - 1]
+        
+        const distance = currentRecord.km! - previousRecord.km!
+        
+        if (distance > 0 && currentRecord.litros! > 0) {
+          totalDistance += distance
+          totalLiters += currentRecord.litros!
+          validReadings++
+        }
+      }
+      
+      const averageConsumption = validReadings > 0 && totalLiters > 0
+        ? totalDistance / totalLiters
+        : null
+      
+      consumptionByVehicle[vehId] = {
+        vehicle_id: vehId,
+        vehicle_model: firstRecord.vehicle_model,
+        averageConsumption,
+        readingsCount: validReadings,
+      }
+    })
+    
+    return Object.values(consumptionByVehicle)
+  }, [filteredExpenses])
 
   const chartData = useMemo(() => {
     const months: Record<string, Partial<CostPerKmData>> = {}
@@ -256,6 +329,54 @@ export default function CostPerKmChart({ expenses, vehicleId }: CostPerKmChartPr
             <p className="text-[15px] font-semibold text-[#1c1c1e] mt-0.5">
               {chartData.length}
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Consumo por Veículo */}
+      {vehicleConsumption.length > 0 && (
+        <div className="mb-5">
+          <h3 className="text-[15px] font-semibold text-[#1c1c1e] mb-3 flex items-center gap-2">
+            <Car className="w-4 h-4 text-ios-blue" />
+            Consumo por Veículo (km/L)
+          </h3>
+          <div className="space-y-2">
+            {vehicleConsumption.map((vehicle) => (
+              <div
+                key={vehicle.vehicle_id}
+                className="flex items-center justify-between bg-[#f2f2f7] rounded-xl p-3"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-ios-blue/10 flex items-center justify-center">
+                    <Car className="w-4 h-4 text-ios-blue" />
+                  </div>
+                  <div>
+                    <p className="text-[14px] font-medium text-[#1c1c1e]">
+                      {vehicle.vehicle_model || 'Veículo'}
+                    </p>
+                    <p className="text-[11px] text-[#8e8e93]">
+                      {vehicle.readingsCount} registro(s)
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-[16px] font-semibold text-[#1c1c1e]">
+                    {vehicle.averageConsumption === null
+                      ? '—'
+                      : `${vehicle.averageConsumption.toFixed(2)} km/L`}
+                  </p>
+                  {vehicle.averageConsumption !== null && (
+                    <p className="text-[11px] text-[#8e8e93]">
+                      {vehicle.averageConsumption >= 10
+                        ? '🟢 Bom'
+                        : vehicle.averageConsumption >= 7
+                          ? '🟡 Regular'
+                          : '🔴 Baixo'}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

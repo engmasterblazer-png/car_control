@@ -1,0 +1,1 @@
+self.__REACT_LOADABLE_MANIFEST='{"lib/supabase.ts -> next/headers":{"id":5854,"files":["static/chunks/854.afa734b2f6beb867.js"]}}';
