@@ -10,7 +10,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  ReferenceLine,
 } from 'recharts'
 import { motion } from 'framer-motion'
 import { Fuel, Droplet, Wrench, CircleDot, Filter } from 'lucide-react'
@@ -20,7 +19,7 @@ interface ExpenseRecord {
   date: string
   type: RecordType
   value: number
-  km: number
+  km: number | null
   vehicle_id: string
   vehicle_model: string
 }
@@ -115,7 +114,7 @@ export default function CostPerKmChart({ expenses, vehicleId }: CostPerKmChartPr
       
       months[monthKey].totalCost! += expense.value
       months[monthKey].byType![expense.type].cost += expense.value
-      months[monthKey].byType![expense.type].km += expense.km
+      months[monthKey].byType![expense.type].km += expense.km || 0
     })
     
     // Ordenar por mês e calcular acumulados

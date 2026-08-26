@@ -16,9 +16,13 @@ interface ExpenseRecord {
   vehicle_id: string
   type: 'troca_oleo' | 'pneus' | 'manutencao_geral' | 'combustivel'
   value: number
-  km: number
+  km: number | null
   date: string
   vehicle_model: string
+}
+
+interface ExpenseQueryRecord extends Omit<ExpenseRecord, 'vehicle_model'> {
+  vehicles: { model: string }[]
 }
 
 export default function DashboardPage() {
@@ -73,10 +77,11 @@ export default function DashboardPage() {
       .order('date', { ascending: false })
 
     if (!expensesError && expensesData) {
+      const records = expensesData as ExpenseQueryRecord[]
       setExpenses(
-        expensesData.map((record) => ({
+        records.map((record) => ({
           ...record,
-          vehicle_model: (record.vehicles as any)?.model || '',
+          vehicle_model: record.vehicles?.[0]?.model || '',
         })) as ExpenseRecord[]
       )
     }
