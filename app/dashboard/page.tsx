@@ -3,20 +3,33 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Car, LogOut, Plus, Loader2 } from 'lucide-react'
+import { Car, LogOut, Plus, Loader2, BarChart3 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import type { VehicleAlert } from '@/lib/types'
 import VehicleCard from './components/VehicleCard'
 import AddExpenseSheet from './components/AddExpenseSheet'
 import AddVehicleSheet from './components/AddVehicleSheet'
+import CostPerKmChart from './components/CostPerKmChart'
+
+interface ExpenseRecord {
+  id: string
+  vehicle_id: string
+  type: 'troca_oleo' | 'pneus' | 'manutencao_geral' | 'combustivel'
+  value: number
+  km: number
+  date: string
+  vehicle_model: string
+}
 
 export default function DashboardPage() {
   const router = useRouter()
   const supabase = createClient()
 
   const [vehicles, setVehicles] = useState<VehicleAlert[]>([])
+  const [expenses, setExpenses] = useState<ExpenseRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [showChart, setShowChart] = useState(false)
 
   const [expenseSheetOpen, setExpenseSheetOpen] = useState(false)
   const [vehicleSheetOpen, setVehicleSheetOpen] = useState(false)
@@ -34,13 +47,38 @@ export default function DashboardPage() {
 
     setUserEmail(user.email ?? null)
 
-    const { data, error } = await supabase
+    const { data: vehiclesData, error: vehiclesError } = await supabase
       .from('vehicle_alerts')
       .select('*')
       .order('model', { ascending: true })
 
-    if (!error && data) {
-      setVehicles(data as VehicleAlert[])
+    if (!vehiclesError && vehiclesData) {
+      setVehicles(vehiclesData as VehicleAlert[])
+    }
+
+    // Carregar despesas/registros
+    const { data: expensesData, error: expensesError } = await supabase
+      .from('records')
+      .select(`
+        id,
+        vehicle_id,
+        type,
+        value,
+        km,
+        date,
+        vehicles!inner (
+          model
+        )
+      `)
+      .order('date', { ascending: false })
+
+    if (!expensesError && expensesData) {
+      setExpenses(
+        expensesData.map((record) => ({
+          ...record,
+          vehicle_model: (record.vehicles as any)?.model || '',
+        })) as ExpenseRecord[]
+      )
     }
 
     setLoading(false)
@@ -135,6 +173,50 @@ export default function DashboardPage() {
                   ? '1 veículo está com a revisão vencida.'
                   : `${totalVencidos} veículos estão com a revisão vencida.`}
               </div>
+            )}
+
+            {/* Botão para mostrar/ocultar gráfico */}
+            {expenses.length > 0 && (
+              <motion.button
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                onClick={() => setShowChart(!showChart)}
+                className="w-full mb-5 flex items-center justify-between bg-white rounded-2xl shadow-sm px-4 py-3.5 active:scale-[0.98] transition"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center ${
+                    showChart ? 'bg-ios-blue' : 'bg-[#f2f2f7]'
+                  }`}>
+                    <BarChart3 className={`w-4.5 h-4.5 ${
+                      showChart ? 'text-white' : 'text-[#8e8e93]'
+                    }`} />
+                  </div>
+                  <div className="text-left">
+                    <p className={`text-[15px] font-semibold ${
+                      showChart ? 'text-[#1c1c1e]' : 'text-[#8e8e93]'
+                    }`}>
+                      {showChart ? 'Ocultar gráfico de custos' : 'Ver custo por KM'}
+                    </p>
+                    <p className="text-[12px] text-[#8e8e93]">
+                      {expenses.length} registro(s) encontrado(s)
+                    </p>
+                  </div>
+                </div>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                  showChart ? 'border-ios-blue bg-ios-blue' : 'border-[#d1d1d6]'
+                }`}>
+                  {showChart && (
+                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+              </motion.button>
+            )}
+
+            {/* Gráfico de Custo por KM */}
+            {showChart && expenses.length > 0 && (
+              <CostPerKmChart expenses={expenses} vehicleId={undefined} />
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
