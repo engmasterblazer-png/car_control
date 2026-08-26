@@ -17,6 +17,7 @@ interface ExpenseRecord {
   type: 'troca_oleo' | 'pneus' | 'manutencao_geral' | 'combustivel'
   value: number
   km: number | null
+  litros: number | null
   date: string
   vehicle_model: string
 }
@@ -69,6 +70,7 @@ export default function DashboardPage() {
         type,
         value,
         km,
+        litros,
         date,
         vehicles!inner (
           model
@@ -230,6 +232,11 @@ export default function DashboardPage() {
                   <VehicleCard
                     key={vehicle.vehicle_id}
                     vehicle={vehicle}
+                    fuelExpenses={expenses.filter(
+                      (expense) =>
+                        expense.vehicle_id === vehicle.vehicle_id &&
+                        expense.type === 'combustivel'
+                    )}
                     onAddExpense={openExpenseSheet}
                     onDelete={handleDeleteVehicle}
                   />

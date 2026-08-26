@@ -4,16 +4,24 @@ import { motion } from 'framer-motion'
 import { Car, Gauge, Plus, Trash2, Droplet, CalendarDays } from 'lucide-react'
 import AlertBadge from './AlertBadge'
 import IpvaBadge from './IpvaBadge'
-import type { VehicleAlert } from '@/lib/types'
+import type { RecordType, VehicleAlert } from '@/lib/types'
+
+interface FuelExpense {
+  type: RecordType
+  km: number | null
+  litros: number | null
+}
 
 interface VehicleCardProps {
   vehicle: VehicleAlert
+  fuelExpenses: FuelExpense[]
   onAddExpense: (vehicleId: string) => void
   onDelete: (vehicleId: string) => void
 }
 
 export default function VehicleCard({
   vehicle,
+  fuelExpenses,
   onAddExpense,
   onDelete,
 }: VehicleCardProps) {
@@ -22,6 +30,16 @@ export default function VehicleCard({
     day: '2-digit',
     month: 'short',
   }).format(new Date(`${vehicle.ipva_due_date}T00:00:00`))
+  const sortedFuelExpenses = [...fuelExpenses]
+    .filter((expense) => expense.km !== null && expense.litros !== null && expense.litros > 0)
+    .sort((first, second) => first.km! - second.km!)
+  const consumptionReadings = sortedFuelExpenses.slice(1).flatMap((expense, index) => {
+    const distance = expense.km! - sortedFuelExpenses[index].km!
+    return distance > 0 ? [distance / expense.litros!] : []
+  })
+  const averageConsumption = consumptionReadings.length > 0
+    ? consumptionReadings.reduce((sum, reading) => sum + reading, 0) / consumptionReadings.length
+    : null
 
   return (
     <motion.div
@@ -67,6 +85,14 @@ export default function VehicleCard({
         <span className="text-[14px] text-[#3a3a3c]">
           <span className="font-semibold text-[#1c1c1e]">{kmFormatted}</span> km
           rodados
+        </span>
+      </div>
+
+      {/* Consumo médio */}
+      <div className="flex items-center justify-between text-[13px] text-[#8e8e93]">
+        <span>Consumo médio</span>
+        <span className="font-semibold text-[#1c1c1e]">
+          {averageConsumption === null ? 'Sem dados suficientes' : `${averageConsumption.toFixed(2)} km/L`}
         </span>
       </div>
 

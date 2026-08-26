@@ -20,6 +20,7 @@ interface ExpenseRecord {
   type: RecordType
   value: number
   km: number | null
+  litros: number | null
   vehicle_id: string
   vehicle_model: string
 }
@@ -33,6 +34,7 @@ interface CostPerKmData {
   cumulativeCost: number
   cumulativeKm: number
   cumulativeCostPerKm: number
+  expenses: ExpenseRecord[]
   byType: Record<RecordType, { cost: number; km: number }>
 }
 
@@ -109,12 +111,15 @@ export default function CostPerKmChart({ expenses, vehicleId }: CostPerKmChartPr
             pneus: { cost: 0, km: 0 },
             manutencao_geral: { cost: 0, km: 0 },
           },
+          expenses: [],
         }
       }
       
       months[monthKey].totalCost! += expense.value
+      months[monthKey].totalKm! += expense.km || 0
       months[monthKey].byType![expense.type].cost += expense.value
       months[monthKey].byType![expense.type].km += expense.km || 0
+      months[monthKey].expenses!.push(expense)
     })
     
     // Ordenar por mês e calcular acumulados
@@ -286,6 +291,37 @@ export default function CostPerKmChart({ expenses, vehicleId }: CostPerKmChartPr
                 tickFormatter={(value) => `R$ ${value.toFixed(2)}`}
               />
               <Tooltip
+                content={({ active, payload, label }) => {
+                  if (!active || !payload?.length) return null
+
+                  const monthExpenses = (payload[0].payload as CostPerKmData).expenses
+                  const expensesByVehicle = monthExpenses.reduce<Record<string, number>>(
+                    (grouped, expense) => {
+                      grouped[expense.vehicle_model] = (grouped[expense.vehicle_model] || 0) + expense.value
+                      return grouped
+                    },
+                    {}
+                  )
+
+                  return (
+                    <div className="bg-white rounded-xl shadow-lg p-3 text-[12px]">
+                      <p className="font-semibold text-[#1c1c1e] mb-2">{label}</p>
+                      {payload.map((entry) => (
+                        <p key={String(entry.dataKey)} className="text-[#3a3a3c]">
+                          {entry.name}: R$ {Number(entry.value).toFixed(entry.name?.toString().includes('Custo por KM') ? 4 : 2)}
+                        </p>
+                      ))}
+                      <div className="border-t border-black/5 mt-2 pt-2">
+                        <p className="font-medium text-[#1c1c1e]">Veículo(s)</p>
+                        {Object.entries(expensesByVehicle).map(([model, cost]) => (
+                          <p key={model} className="text-[#8e8e93]">
+                            {model || 'Veículo'}: R$ {cost.toFixed(2)}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                }}
                 contentStyle={{
                   backgroundColor: '#fff',
                   border: 'none',
