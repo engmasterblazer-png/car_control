@@ -43,6 +43,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=coloque-sua-anon-key-aqui
 npm run dev
 ```
 
+Ig2oaHhxhJrrhf8d
+
 Acesse [http://localhost:3000](http://localhost:3000). Você será redirecionado
 para `/login`. Crie uma conta (o Supabase pode exigir confirmação por
 e-mail, dependendo da configuração do projeto) e faça login.
